@@ -1,0 +1,14 @@
+name: Feature request
+description: Explain a use case and desired behavior.
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Include alternatives and privacy or parental-control implications.

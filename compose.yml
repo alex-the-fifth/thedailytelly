@@ -1,0 +1,25 @@
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FORWARDED_ALLOW_IPS: 127.0.0.1,172.30.0.1
+      DAILYTELLY_CPU_LIMIT: '1'
+      DAILYTELLY_MEMORY_LIMIT_MB: '1024'
+    ports:
+      - "127.0.0.1:18400:8000"
+    volumes:
+      - telly-data:/data
+    mem_limit: 1g
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  telly-data:
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+          gateway: 172.30.0.1

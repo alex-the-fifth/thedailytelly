@@ -1,0 +1,21 @@
+name: Bug report
+description: Report a reproducible problem with redacted or synthetic data.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include expected behavior and steps. Never include tokens or household data.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and redacted logs
+      description: Server/browser/Android/WebView versions. Remove credentials, IPs, and child activity.

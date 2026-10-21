@@ -1,0 +1,21 @@
+[Unit]
+Description=The Daily Telly platform
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=telly
+Group=telly
+WorkingDirectory=/opt/dailytelly/current/server
+EnvironmentFile=/opt/dailytelly/.env
+ExecStart=/opt/dailytelly/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 18400 --workers 1 --no-access-log --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+PrivateTmp=true
+UMask=0077
+ReadWritePaths=/opt/dailytelly/data
+
+[Install]
+WantedBy=multi-user.target

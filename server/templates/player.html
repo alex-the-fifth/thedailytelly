@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="strict-origin-when-cross-origin"><title>The Daily Telly player</title><style>html,body{margin:0;background:#000;height:100%;overflow:hidden}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body><script>
+'use strict';
+const params=new URLSearchParams(location.search), video=params.get('v');
+const start=Math.max(0,parseInt(params.get('t')||'0',10)||0);
+let player,timer;
+function send(method,value=''){if(window.AndroidBridge&&typeof AndroidBridge[method]==='function')AndroidBridge[method](String(value));}
+const iframe=document.createElement('iframe');iframe.id='video';iframe.title='YouTube video player';
+iframe.setAttribute('referrerpolicy','strict-origin-when-cross-origin');iframe.setAttribute('allow','autoplay; encrypted-media; fullscreen');iframe.allowFullscreen=true;
+iframe.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(video)+'?enablejsapi=1&controls=1&autoplay=1&playsinline=1&start='+start+'&origin='+encodeURIComponent(location.origin);
+document.body.append(iframe);
+function onYouTubeIframeAPIReady(){player=new YT.Player('video',{events:{
+  onReady:e=>{send('onReady');send('onDuration',e.target.getDuration());},
+  onStateChange:e=>{send('onState',e.data);clearInterval(timer);if(e.data===1)timer=setInterval(()=>send('onTime',player.getCurrentTime()),500);},
+  onError:e=>send('onError',e.data)
+}});}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&player)player.pauseVideo();});
+const script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';document.head.append(script);
+</script></body></html>
