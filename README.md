@@ -128,8 +128,8 @@ your deployment before inviting users at scale.
 
 ## Community
 
-[Discussions](https://github.com/alex-the-fifth/daily-telly/discussions) for questions
-and ideas; [issues](https://github.com/alex-the-fifth/daily-telly/issues) for bugs
+[Discussions](https://github.com/alex-the-fifth/thedailytelly/discussions) for questions
+and ideas; [issues](https://github.com/alex-the-fifth/thedailytelly/issues) for bugs
 and feature proposals. Read [contributing](CONTRIBUTING.md), our
 [code of conduct](CODE_OF_CONDUCT.md), and [security reporting](SECURITY.md).
 Never post private family data or credentials in public threads.

@@ -10,5 +10,5 @@
 - Inspect the exact Git tree for secrets/runtime data and source provenance.
 - Deploy one instance first, observe load, and open registration gradually.
 
-The public source repository is https://github.com/alex-the-fifth/daily-telly.
+The public source repository is https://github.com/alex-the-fifth/thedailytelly.
 Keep runtime data, credentials, private host configuration, and signing keys out of Git.
