@@ -34,7 +34,10 @@ point for adult review, not a guarantee of child-appropriate content.
 - An editable starter schedule, with a friendly introduction on first sign-in.
 - Owner-managed starter defaults, copied from the owner's selected public catalog.
 - Separate household libraries, filtering, saved progress, export and deletion.
+- Separate experiences: parents plan schedules and viewing rules; kids browse today’s selected videos.
+- Android phones/tablets, Google TV / Android TV, and a browser-based web viewer.
 - Android/TV activation with expiring codes and revocable viewing-only credentials.
+- An Apple iOS app is coming soon; it is not currently available.
 - One optional welcome check-in at the first 8 p.m. Eastern at least 24 hours after
   confirmation, summarizing selected channels and available video metadata.
 - Branded HTML emails with plain-text alternatives and no added tracking pixels.
@@ -90,6 +93,21 @@ python -m pytest
 Tests use synthetic accounts and mock external services. Coverage includes account
 isolation, pairing, migration, starter seeding, Eastern daylight-saving transitions,
 reminder preferences/idempotency, and signed inbound forwarding.
+
+## Where to watch
+
+Parents manage the household in the web dashboard. The separate viewing screen
+shows the channels and videos selected for today. Linked Android/TV credentials
+are viewing-only. This separation is a product experience, not a device kiosk or
+a promise that a signed-in browser cannot navigate to the parent dashboard.
+
+- **Android phones and tablets:** [download the APK](https://thedailytelly.com/downloads/daily-telly.apk).
+- **Google TV and Android TV:** use the same app, with remote-friendly viewing and activation.
+- **Web:** [open the web viewer](https://thedailytelly.com/kid/) while signed in.
+- **Apple iOS:** coming soon. No iOS download is available yet.
+
+The Android/TV app is currently distributed as a direct APK download requiring
+manual installation, rather than a claimed Google Play listing.
 
 ## Android and TV
 
