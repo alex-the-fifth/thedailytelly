@@ -12,6 +12,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RectangleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -580,27 +581,24 @@ private fun HistoryGrid(history: HistoryResponse?, state: LazyGridState, onPlay:
     }
 }
 
-private fun fmtViews(n: Long): String = when {
-    n >= 1_000_000 -> "%.1fM views".format(n / 1_000_000.0)
-    n >= 1_000 -> "%.1fK views".format(n / 1_000.0)
-    else -> "$n views"
-}
-
 @Composable
 fun VideoCard(v: Video, onClick: () -> Unit, dimmed: Boolean = false) {
-    // D-pad/TV: visible focus state (scale + border)
+    // Keep a clear focus indicator for TV remotes while using a flat, square-edged card.
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
-    ElevatedCard(
+    Card(
         onClick = onClick,
         interactionSource = interaction,
+        shape = RectangleShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier
             .alpha(if (dimmed) 0.45f else 1f)
             .scale(if (focused) 1.04f else 1f)
             .border(
                 width = if (focused) 3.dp else 0.dp,
                 color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = CardDefaults.elevatedShape,
+                shape = RectangleShape,
             ),
     ) {
         Column {
@@ -628,25 +626,26 @@ fun VideoCard(v: Video, onClick: () -> Unit, dimmed: Boolean = false) {
                     )
                 }
             }
-            Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+            Column(Modifier.padding(horizontal = 10.dp, vertical = 9.dp)) {
                 Text(
                     v.title,
-                    maxLines = 3,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 16.sp,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 19.sp,
                 )
                 Text(
                     if (dimmed) "Not available today"
-                    else "%d:%02d · %s · %s".format(
+                    else "%d:%02d · %s".format(
                         v.duration_seconds / 60, v.duration_seconds % 60,
-                        v.published_at.take(10), fmtViews(v.view_count),
+                        v.published_at.take(10),
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(top = 3.dp),
                 )
             }
         }
