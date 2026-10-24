@@ -54,6 +54,11 @@ async function start() {
   if(page==='login') {
     const next=new URLSearchParams(location.search).get('next');
     saveNext(next);
+    try {
+      account=await api('/auth/me');
+      location.replace(allowedNext.includes(next)?next:'/app');
+      return;
+    } catch {}
     $('#email-form').hidden=true;
     const mode=await api('/auth/mode');
     if(!mode.email_enabled){
