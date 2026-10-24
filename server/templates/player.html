@@ -1,18 +1,113 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="strict-origin-when-cross-origin"><title>The Daily Telly player</title><style>html,body{margin:0;background:#000;height:100%;overflow:hidden}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body><script>
-'use strict';
-const params=new URLSearchParams(location.search), video=params.get('v');
-const start=Math.max(0,parseInt(params.get('t')||'0',10)||0);
-let player,timer;
-function send(method,value=''){if(window.AndroidBridge&&typeof AndroidBridge[method]==='function')AndroidBridge[method](String(value));}
-const iframe=document.createElement('iframe');iframe.id='video';iframe.title='YouTube video player';
-iframe.setAttribute('referrerpolicy','strict-origin-when-cross-origin');iframe.setAttribute('allow','autoplay; encrypted-media; fullscreen');iframe.allowFullscreen=true;
-iframe.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(video)+'?enablejsapi=1&controls=1&autoplay=1&playsinline=1&start='+start+'&origin='+encodeURIComponent(location.origin);
-document.body.append(iframe);
-function onYouTubeIframeAPIReady(){player=new YT.Player('video',{events:{
-  onReady:e=>{send('onReady');send('onDuration',e.target.getDuration());},
-  onStateChange:e=>{send('onState',e.data);clearInterval(timer);if(e.data===1)timer=setInterval(()=>send('onTime',player.getCurrentTime()),500);},
-  onError:e=>send('onError',e.data)
-}});}
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&player)player.pauseVideo();});
-const script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';document.head.append(script);
-</script></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<style>
+html,body{margin:0;background:#000;height:100%;overflow:hidden}
+#p{position:absolute;inset:0;width:100%;height:100%;border:0}
+#err{position:absolute;inset:0;display:none;color:#fff;background:#000;
+     font:16px system-ui;align-items:center;justify-content:center;text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<div id="err"></div>
+<script>
+/* Self-hosted YouTube IFrame player for the The Daily Telly app.
+   YouTube (since late 2025) requires embeds to send a valid HTTP Referer:
+   the iframe must carry referrerpolicy="strict-origin-when-cross-origin",
+   which the IFrame API omits when it builds the iframe itself — so we build
+   the iframe manually and let the API attach to it. */
+var q = new URLSearchParams(location.search);
+var vid = q.get("v"), start = parseInt(q.get("t") || "0", 10) || 0;
+var cc = q.get("cc") === "1";
+
+function send(fn, data) {
+  try {
+    if (window.AndroidBridge && AndroidBridge[fn]) {
+      AndroidBridge[fn](data === undefined ? "" : String(data));
+    }
+  } catch (e) {}
+}
+function showError(code) {
+  var el = document.getElementById("err");
+  el.style.display = "flex";
+  el.textContent = "YouTube refused playback (error " + code + ", video " + vid + ")";
+}
+
+/* build the iframe ourselves so we control its attributes */
+var iframe = document.createElement("iframe");
+iframe.id = "p";
+iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+iframe.setAttribute("allow", "autoplay; encrypted-media; fullscreen");
+iframe.src = "https://www.youtube.com/embed/" + encodeURIComponent(vid) +
+  "?enablejsapi=1&autoplay=1&controls=0&rel=0&iv_load_policy=3&fs=0" +
+  "&playsinline=1&disablekb=1&start=" + start +
+  "&cc_load_policy=" + (cc ? 1 : 0) +
+  "&origin=" + encodeURIComponent(location.origin);
+document.body.appendChild(iframe);
+
+var tag = document.createElement("script");
+tag.src = "https://www.youtube.com/iframe_api";
+document.head.appendChild(tag);
+
+var player, timer;
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player("p", {
+    events: {
+      onReady: function (e) {
+        if (!cc) {
+          try {
+            e.target.unloadModule("captions");
+            e.target.setOption("captions", "track", {});
+          } catch (err) {}
+        }
+        send("onReady");
+        send("onDuration", e.target.getDuration());
+        e.target.playVideo();
+      },
+      onStateChange: function (e) {
+        send("onState", e.data); /* 0 ended, 1 playing, 2 paused */
+        clearInterval(timer);
+        if (e.data === 1 && !cc) {
+          /* strip captions again at playback start: YouTube re-enables them
+             from remembered preference, so onReady alone is not enough */
+          try {
+            player.unloadModule("captions");
+            player.setOption("captions", "track", {});
+          } catch (err) {}
+        }
+        if (e.data === 1) {
+          send("onDuration", player.getDuration());
+          timer = setInterval(function () {
+            send("onTime", player.getCurrentTime());
+          }, 500);
+        }
+      },
+      onError: function (e) {
+        showError(e.data);
+        send("onError", e.data);
+      }
+    }
+  });
+}
+
+/* called from the app via evaluateJavascript */
+function appPlay()  { if (player) player.playVideo(); }
+function appPause() { if (player) player.pauseVideo(); }
+function appSeek(s) { if (player) player.seekTo(s, true); }
+function appCc(on) {
+  if (!player) return;
+  if (on === "1" || on === 1 || on === true) {
+    player.loadModule("captions");
+    setTimeout(function () {
+      var tracks = player.getOption("captions", "tracklist") || [];
+      if (tracks.length) player.setOption("captions", "track", tracks[0]);
+    }, 300);
+  } else {
+    player.unloadModule("captions");
+  }
+}
+</script>
+</body>
+</html>
