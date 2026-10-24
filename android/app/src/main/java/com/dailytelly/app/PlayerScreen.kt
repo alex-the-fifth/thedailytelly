@@ -91,6 +91,20 @@ private const val COMPAT_PLAYBACK_JS = """
 // survives screen disposal so exit-events still get sent
 private val reportScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+private class PlayerJavascriptBridge(
+    private val ready: () -> Unit,
+    private val duration: (String) -> Unit,
+    private val time: (String) -> Unit,
+    private val state: (String) -> Unit,
+    private val error: (String) -> Unit,
+) {
+    @JavascriptInterface fun onReady() = ready()
+    @JavascriptInterface fun onDuration(value: String) = duration(value)
+    @JavascriptInterface fun onTime(value: String) = time(value)
+    @JavascriptInterface fun onState(value: String) = state(value)
+    @JavascriptInterface fun onError(value: String) = error(value)
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun PlayerScreen(video: Video, onExit: () -> Unit) {
@@ -178,34 +192,27 @@ fun PlayerScreen(video: Video, onExit: () -> Unit) {
 
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     val bridge = remember {
-        object {
-            @JavascriptInterface
-            fun onReady() {
+        PlayerJavascriptBridge(
+            ready = {
                 mainHandler.post {
                     if (!startReported) { startReported = true; report("start") }
                 }
-            }
-
-            @JavascriptInterface
-            fun onDuration(v: String) {
+            },
+            duration = { value ->
                 mainHandler.post {
-                    v.toFloatOrNull()?.let { if (it > 0f) durationSec = it }
+                    value.toFloatOrNull()?.let { if (it > 0f) durationSec = it }
                 }
-            }
-
-            @JavascriptInterface
-            fun onTime(v: String) {
+            },
+            time = { value ->
                 mainHandler.post {
-                    val s = v.toFloatOrNull() ?: return@post
-                    currentSec = s
-                    if (!seeking) sliderPos = s
+                    val seconds = value.toFloatOrNull() ?: return@post
+                    currentSec = seconds
+                    if (!seeking) sliderPos = seconds
                 }
-            }
-
-            @JavascriptInterface
-            fun onState(v: String) {
+            },
+            state = { value ->
                 mainHandler.post {
-                    when (v.toIntOrNull()) {
+                    when (value.toIntOrNull()) {
                         1 -> playing = true
                         2 -> {
                             playing = false
@@ -219,22 +226,19 @@ fun PlayerScreen(video: Video, onExit: () -> Unit) {
                             report("ended")
                             onExit()
                         }
-                        else -> {}
                     }
                 }
-            }
-
-            @JavascriptInterface
-            fun onError(v: String) {
+            },
+            error = { value ->
                 mainHandler.post {
                     ended = true
-                    if (v.toIntOrNull() in setOf(100, 101, 150)) {
+                    if (value.toIntOrNull() in setOf(100, 101, 150)) {
                         reportScope.launch { Api.unplayable(ctx, video.video_id) }
                     }
                     onExit()
                 }
-            }
-        }
+            },
+        )
     }
 
     val navKeys = remember {
