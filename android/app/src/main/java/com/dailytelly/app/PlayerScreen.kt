@@ -105,7 +105,7 @@ private class PlayerJavascriptBridge(
     @JavascriptInterface fun onError(value: String) = error(value)
 }
 
-@SuppressLint("SetJavaScriptEnabled")
+@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
 fun PlayerScreen(video: Video, onExit: () -> Unit) {
     // allows inspecting the player WebView from desktop Chrome via chrome://inspect
