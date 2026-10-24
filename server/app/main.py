@@ -83,7 +83,7 @@ async def isolation_and_headers(request: Request, call_next):
             if origin and origin != expected:
                 return JSONResponse({'detail': 'Cross-origin requests are not allowed'}, status_code=403)
         response = await call_next(request)
-        if refresh_browser_session:
+        if refresh_browser_session and request.url.path not in {'/auth/logout', '/account/delete'}:
             response.set_cookie(store.SESSION_COOKIE, session_token,
                                 max_age=store.SESSION_TTL_SECONDS, httponly=True,
                                 secure=store.secure_cookie(), samesite='lax', path='/')

@@ -12,8 +12,8 @@ function saveNext(next) {
 }
 function takeNext() {
   let value;
-  try { value=localStorage.getItem('telly-next');localStorage.removeItem('telly-next'); }
-  catch { try { value=sessionStorage.getItem('telly-next');sessionStorage.removeItem('telly-next'); } catch {} }
+  try { value=localStorage.getItem('telly-next');if(value)localStorage.removeItem('telly-next'); } catch {}
+  if(!value)try { value=sessionStorage.getItem('telly-next');sessionStorage.removeItem('telly-next'); } catch {}
   try {
     const pending=JSON.parse(value);
     return Date.now()-pending.at < 60*60*1000 && allowedNext.includes(pending.path) ? pending.path : null;
