@@ -12,7 +12,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -41,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -172,19 +172,6 @@ fun IntroOverlay(today: TodayResponse, onDone: () -> Unit) {
     // take focus so a TV remote press skips the intro instead of opening a video underneath
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
-    // slow, kid-paced timeline
-    LaunchedEffect(Unit) {
-        delay(100); showHello = true
-        delay(500); lettersGo = true
-        delay(dayName.length * 110L + 1_000)          // let the day name settle
-        for (i in today.channels.indices) {
-            if (leaving) return@LaunchedEffect
-            shownChannels = i + 1
-            delay(1_300)
-        }
-        delay(2_500)
-        finish()
-    }
     LaunchedEffect(leaving) {
         if (leaving) { delay(600); finished = true; onDone() }
     }
@@ -195,7 +182,7 @@ fun IntroOverlay(today: TodayResponse, onDone: () -> Unit) {
         enter = fadeIn(),
         exit = fadeOut(androidx.compose.animation.core.tween(600)),
     ) {
-        Box(
+        BoxWithConstraints(
             Modifier.fillMaxSize()
                 .background(
                     Brush.radialGradient(
@@ -210,6 +197,24 @@ fun IntroOverlay(today: TodayResponse, onDone: () -> Unit) {
                 ) { finish() },
             contentAlignment = Alignment.Center,
         ) {
+            // Keep the welcome animation within the available screen height. The
+            // schedule itself still contains every channel; this is only a preview.
+            val previewCount = ((maxHeight - 200.dp) / 86.dp).toInt().coerceIn(1, 4)
+            val previewChannels = today.channels.take(previewCount)
+
+            LaunchedEffect(today.channels, previewCount) {
+                delay(100); showHello = true
+                delay(500); lettersGo = true
+                delay(dayName.length * 110L + 1_000) // let the day name settle
+                for (i in previewChannels.indices) {
+                    if (leaving) return@LaunchedEffect
+                    shownChannels = i + 1
+                    delay(1_300)
+                }
+                delay(2_500)
+                finish()
+            }
+
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 val helloAlpha by androidx.compose.animation.core.animateFloatAsState(
                     if (showHello) 1f else 0f, androidx.compose.animation.core.tween(800),
@@ -226,8 +231,19 @@ fun IntroOverlay(today: TodayResponse, onDone: () -> Unit) {
                 if (today.channels.isEmpty() && lettersGo) {
                     Text("No channels today", color = Color.White, fontSize = 22.sp)
                 }
-                today.channels.forEachIndexed { i, ch ->
+                previewChannels.forEachIndexed { i, ch ->
                     ChannelChip(ch, Reveal.entries[i % Reveal.entries.size], i < shownChannels)
+                }
+                if (lettersGo && shownChannels >= previewChannels.size &&
+                    today.channels.size > previewChannels.size
+                ) {
+                    val remaining = today.channels.size - previewChannels.size
+                    Text(
+                        "+ $remaining more ${if (remaining == 1) "channel" else "channels"} today",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
                 }
             }
             Text(
@@ -635,18 +651,37 @@ fun VideoCard(v: Video, onClick: () -> Unit, dimmed: Boolean = false) {
                     fontWeight = FontWeight.SemiBold,
                     lineHeight = 19.sp,
                 )
-                Text(
-                    if (dimmed) "Not available today"
-                    else "%d:%02d · %s".format(
-                        v.duration_seconds / 60, v.duration_seconds % 60,
-                        v.published_at.take(10),
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(top = 3.dp),
-                )
+                if (dimmed) {
+                    Text(
+                        "Not available today",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
+                } else {
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "%d:%02d".format(v.duration_seconds / 60, v.duration_seconds % 60),
+                            maxLines = 1,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            v.published_at.take(10),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.End,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                }
             }
         }
     }
@@ -656,3 +691,4 @@ fun VideoCard(v: Video, onClick: () -> Unit, dimmed: Boolean = false) {
 fun SetupScreen(onDone: () -> Unit) {
     PairingScreen(onDone)
 }
+
