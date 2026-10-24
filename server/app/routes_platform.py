@@ -95,8 +95,8 @@ def operator_signin(body: OperatorIn, request: Request, response: Response):
         conn.execute('DELETE FROM operator_links WHERE account_id=?', (row['id'],))
         conn.execute('UPDATE accounts SET last_login_at=?,policy_version=?,accepted_at=? WHERE id=?',
                      (store.now(),store.POLICY_VERSION,store.now(),row['id']))
-        conn.execute('INSERT INTO sessions VALUES (?,?,?)', (store.digest(session), row['id'], store.now()+7*86400))
-    response.set_cookie(store.SESSION_COOKIE,session,max_age=7*86400,httponly=True,
+        conn.execute('INSERT INTO sessions VALUES (?,?,?)', (store.digest(session), row['id'], store.now()+store.SESSION_TTL_SECONDS))
+    response.set_cookie(store.SESSION_COOKIE,session,max_age=store.SESSION_TTL_SECONDS,httponly=True,
                         secure=store.secure_cookie(),samesite='lax',path='/')
     store.audit('operator','owner_link_redeemed',row['id'])
     return public_account(dict(row))
@@ -124,8 +124,8 @@ def verify(body: VerifyIn, request: Request, response: Response):
     starter.apply_starter(account)
     session = secrets.token_urlsafe(32)
     with store.registry() as conn:
-        conn.execute('INSERT INTO sessions VALUES (?,?,?)', (store.digest(session), account['id'], store.now()+7*86400))
-    response.set_cookie(store.SESSION_COOKIE, session, max_age=7*86400, httponly=True,
+        conn.execute('INSERT INTO sessions VALUES (?,?,?)', (store.digest(session), account['id'], store.now()+store.SESSION_TTL_SECONDS))
+    response.set_cookie(store.SESSION_COOKIE, session, max_age=store.SESSION_TTL_SECONDS, httponly=True,
                         secure=store.secure_cookie(), samesite='lax', path='/')
     response.delete_cookie(store.INTENT_COOKIE, path='/auth')
     return public_account(account)

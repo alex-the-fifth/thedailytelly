@@ -15,6 +15,7 @@ from . import config
 account_context = ContextVar('account', default=None)
 SESSION_COOKIE = 'dailytelly_account'
 INTENT_COOKIE = 'dailytelly_signin'
+SESSION_TTL_SECONDS = 30 * 86400
 POLICY_VERSION = '2026-10-21'
 
 
@@ -174,6 +175,21 @@ def account_for_session(token):
             WHERE s.hash=? AND s.expires_at>? AND a.status='active' AND a.verified_at IS NOT NULL''',
             (digest(token), now())).fetchone()
         return dict(row) if row else None
+
+
+def refresh_session_if_needed(token):
+    """Extend an active browser session when fewer than 15 days remain."""
+    if not token:
+        return False
+    current = now()
+    with registry() as conn:
+        row = conn.execute('SELECT expires_at FROM sessions WHERE hash=? AND expires_at>?',
+                           (digest(token), current)).fetchone()
+        if not row or row['expires_at'] - current > SESSION_TTL_SECONDS // 2:
+            return False
+        conn.execute('UPDATE sessions SET expires_at=? WHERE hash=? AND expires_at>? ',
+                     (current + SESSION_TTL_SECONDS, digest(token), current))
+        return True
 
 
 def account_for_device(token):

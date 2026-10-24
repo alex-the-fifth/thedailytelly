@@ -171,6 +171,24 @@ def test_tokens_only_stored_as_hashes(client):
         assert row['hash']==store.digest(session) and row['hash']!=session
 
 
+def test_browser_session_persists_for_30_days_and_extends_while_active(client):
+    client.post('/auth/email',json={'email':'parent@example.com','accepted':True})
+    response=client.post('/auth/verify',json={'token':token_for('parent@example.com')})
+    assert response.status_code==200
+    assert f'max-age={store.SESSION_TTL_SECONDS}' in response.headers.get('set-cookie','').lower()
+    cookie=client.cookies.get(store.SESSION_COOKIE)
+    with store.registry() as conn:
+        conn.execute('UPDATE sessions SET expires_at=? WHERE hash=?',
+                     (store.now()+store.SESSION_TTL_SECONDS//4,store.digest(cookie)))
+    response=client.get('/auth/me')
+    assert response.status_code==200
+    assert f'max-age={store.SESSION_TTL_SECONDS}' in response.headers.get('set-cookie','').lower()
+    with store.registry() as conn:
+        expiry=conn.execute('SELECT expires_at FROM sessions WHERE hash=?',
+                            (store.digest(cookie),)).fetchone()['expires_at']
+    assert expiry>=store.now()+store.SESSION_TTL_SECONDS-2
+
+
 def test_two_accounts_with_same_video_id_are_isolated(client):
     first=signin(client,'first@example.com');seed(first,'First household')
     second_client=TestClient(app,base_url=BASE)

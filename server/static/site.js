@@ -4,6 +4,21 @@ const $ = selector => document.querySelector(selector);
 const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const allowedNext = ['/app','/activate','/owner','/kid/'];
 let account;
+function saveNext(next) {
+  if(!allowedNext.includes(next))return;
+  const value=JSON.stringify({path:next,at:Date.now()});
+  try { localStorage.setItem('telly-next',value); }
+  catch { try { sessionStorage.setItem('telly-next',value); } catch {} }
+}
+function takeNext() {
+  let value;
+  try { value=localStorage.getItem('telly-next');localStorage.removeItem('telly-next'); }
+  catch { try { value=sessionStorage.getItem('telly-next');sessionStorage.removeItem('telly-next'); } catch {} }
+  try {
+    const pending=JSON.parse(value);
+    return Date.now()-pending.at < 60*60*1000 && allowedNext.includes(pending.path) ? pending.path : null;
+  } catch { return null; }
+}
 function el(tag, text, className) { const node=document.createElement(tag); if(text!==undefined)node.textContent=text; if(className)node.className=className; return node; }
 function message(text, error=false) { const node=$('#message'); if(!node)return; node.hidden=false; node.className='message'+(error?' error':''); node.textContent=text; }
 async function api(path, options={}) {
@@ -38,7 +53,7 @@ async function start() {
   }
   if(page==='login') {
     const next=new URLSearchParams(location.search).get('next');
-    if(allowedNext.includes(next))sessionStorage.setItem('telly-next',next);
+    saveNext(next);
     $('#email-form').hidden=true;
     const mode=await api('/auth/mode');
     if(!mode.email_enabled){
@@ -62,7 +77,7 @@ async function start() {
     if(!token){message('Request a fresh sign-in email, then open its link in this browser.',true);$('#verify').disabled=true;return;}
     $('#verify').addEventListener('click',()=>action(async()=>{
       await post('/auth/verify',{token});
-      const next=sessionStorage.getItem('telly-next');sessionStorage.removeItem('telly-next');
+      const next=takeNext();
       location.assign(allowedNext.includes(next)?next:'/app');
     },$('#verify')));
   }

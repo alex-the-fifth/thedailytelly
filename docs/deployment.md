@@ -42,7 +42,8 @@ python scripts/owner-access.py --email hello@thedailytelly.com --hours 24
 The operator explicitly approves the configured owner account and receives a
 private link. The link expires, is stored only as a hash, requires an explicit
 confirmation POST, and works once. Issuing another invalidates earlier links.
-Do not log or share the link. It is a sign-in credential. Sessions last seven days.
+Do not log or share the link. It is a sign-in credential. Browser sessions last up to
+30 days and extend during use; they expire after 30 days without activity.
 This is server-admin approval, not evidence of email deliverability.
 
 When SMTP is configured, switch to smtp mode; owner-link redemption is then

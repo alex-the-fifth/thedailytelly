@@ -64,7 +64,9 @@ app = FastAPI(title='Daily Telly Platform', docs_url=None, redoc_url=None, opena
 
 @app.middleware('http')
 async def isolation_and_headers(request: Request, call_next):
-    browser = store.account_for_session(request.cookies.get(store.SESSION_COOKIE))
+    session_token = request.cookies.get(store.SESSION_COOKIE)
+    browser = store.account_for_session(session_token)
+    refresh_browser_session = bool(browser and store.refresh_session_if_needed(session_token))
     account = browser
     device_id = None
     authorization = request.headers.get('authorization', '')
@@ -81,6 +83,10 @@ async def isolation_and_headers(request: Request, call_next):
             if origin and origin != expected:
                 return JSONResponse({'detail': 'Cross-origin requests are not allowed'}, status_code=403)
         response = await call_next(request)
+        if refresh_browser_session:
+            response.set_cookie(store.SESSION_COOKIE, session_token,
+                                max_age=store.SESSION_TTL_SECONDS, httponly=True,
+                                secure=store.secure_cookie(), samesite='lax', path='/')
         resources.record(response.status_code)
         response.headers['Cache-Control'] = 'no-store'
         response.headers['X-Content-Type-Options'] = 'nosniff'
